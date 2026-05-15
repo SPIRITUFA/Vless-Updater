@@ -4,79 +4,64 @@ import requests
 import yaml
 
 URL = "https://raw.githubusercontent.com/tiagorrg/vless-checker/main/docs/keys.json"
-OUT = "output/proxies.yaml"
+OUT_DIR = "output"
+OUT = f"{OUT_DIR}/proxies.yaml"
 
-os.makedirs("output", exist_ok=True)
+os.makedirs(OUT_DIR, exist_ok=True)
 
 print("[INFO] downloading...")
 
 data = requests.get(URL, timeout=30).text
-
-links = list(set(re.findall(r'vless://[^"\s]+', data)))
+links = sorted(set(re.findall(r'vless://[^"\s]+', data)))
 
 proxies = []
+seen = set()
 
-# =========================
-# REAL GEO MAP (domain-based fallback)
-# =========================
-def detect_country(server):
-    s = server.lower()
-
-    if any(x in s for x in ["ru", "moscow", "msk"]):
-        return "RU"
-    if any(x in s for x in ["de", "germany", "fra", "berlin"]):
-        return "DE"
-    if any(x in s for x in ["nl", "netherlands", "amsterdam"]):
-        return "NL"
-    if any(x in s for x in ["fr", "france", "paris"]):
-        return "FR"
-    if any(x in s for x in ["us", "ny", "usa", "miami", "la"]):
-        return "US"
-    if any(x in s for x in ["jp", "tokyo"]):
-        return "JP"
-    if any(x in s for x in ["sg", "singapore"]):
-        return "SG"
-    if any(x in s for x in ["fi", "finland", "helsinki"]):
-        return "FI"
-
-    return "XX"
-
-# =========================
-# FLAGS
-# =========================
-flags = {
-    "RU": "🇷🇺","US": "🇺🇸","DE": "🇩🇪","NL": "🇳🇱",
-    "FR": "🇫🇷","JP": "🇯🇵","SG": "🇸🇬","FI": "🇫🇮",
-    "XX": "🌍"
-}
-
-print("[INFO] parsing nodes...")
-
-for i, line in enumerate(links):
-
+for line in links:
     try:
         uuid = re.search(r'vless://([^@]+)@', line).group(1)
         server = re.search(r'@([^:]+):', line).group(1)
         port = int(re.search(r':(\d+)', line).group(1))
 
-        pbk = re.search(r'pbk=([^&]+)', line)
-        sid = re.search(r'sid=([^&]+)', line)
-        sni = re.search(r'sni=([^&#]+)', line)
-
-        if not (pbk and sid and sni):
-            continue
-
-        pbk = pbk.group(1)
-        sid = sid.group(1).split("#")[0]
-        sni = sni.group(1).split("#")[0]
+        pbk = re.search(r'pbk=([^&]+)', line).group(1)
+        sid = re.search(r'sid=([^&#]+)', line).group(1)
+        sni = re.search(r'sni=([^&#]+)', line).group(1)
 
     except:
         continue
 
-    cc = detect_country(server)
-    flag = flags.get(cc, "🌍")
+    server = server.strip()
+    sid = sid.split("#")[0]
+    sni = sni.split("#")[0]
 
-    # ⚠️ ВАЖНО: НЕ режем по server (это убивало разнообразие)
+    # dedupe
+    if server in seen:
+        continue
+    seen.add(server)
+
+    # simple geo
+    cc = "XX"
+    if ".ru" in server: cc = "RU"
+    elif ".us" in server: cc = "US"
+    elif ".de" in server: cc = "DE"
+    elif ".nl" in server: cc = "NL"
+    elif ".fr" in server: cc = "FR"
+    elif ".fi" in server: cc = "FI"
+    elif ".jp" in server: cc = "JP"
+
+    flags = {
+        "RU": "🇷🇺",
+        "US": "🇺🇸",
+        "DE": "🇩🇪",
+        "NL": "🇳🇱",
+        "FR": "🇫🇷",
+        "FI": "🇫🇮",
+        "JP": "🇯🇵",
+        "XX": "🏳️"
+    }
+
+    flag = flags.get(cc, "🏳️")
+
     name = f"{flag} {cc} | {server}:{port}"
 
     proxies.append({
@@ -97,30 +82,13 @@ for i, line in enumerate(links):
         }
     })
 
-print("[INFO] total before dedup:", len(proxies))
-
-# =========================
-# SMART DEDUP (NOT KILLING VARIETY)
-# =========================
-unique = []
-seen = set()
-
-for p in proxies:
-    key = (p["server"], p["port"], p["uuid"])
-    if key in seen:
-        continue
-    seen.add(key)
-    unique.append(p)
-
-# =========================
-# WRITE YAML
-# =========================
 with open(OUT, "w", encoding="utf-8") as f:
     yaml.dump(
-        {"proxies": unique},
+        {"proxies": proxies},
         f,
         allow_unicode=True,
-        sort_keys=False
+        sort_keys=False,
+        default_flow_style=False
     )
 
-print(f"[OK] final proxies: {len(unique)}")
+print(f"[OK] generated {len(proxies)} proxies")
