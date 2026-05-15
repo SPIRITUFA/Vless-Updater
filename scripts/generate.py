@@ -2,7 +2,7 @@ import os
 import re
 import requests
 import yaml
-from urllib.parse import urlparse, parse_qs, unquote
+from urllib.parse import urlparse, parse_qs
 
 URL = "https://raw.githubusercontent.com/tiagorrg/vless-checker/main/docs/keys.json"
 
@@ -15,10 +15,15 @@ print("[INFO] downloading...")
 
 data = requests.get(URL, timeout=30).text
 
-# ✅ важно: сначала режем комментарии (#)
+# =========================
+# extract vless links (strip #comments)
+# =========================
 raw_links = re.findall(r'vless://[^\s"]+', data)
 links = sorted(set(l.split("#")[0] for l in raw_links))
 
+# =========================
+# country guess (simple fallback)
+# =========================
 def guess_country(server: str):
     s = server.lower()
     if ".ru" in s: return "RU"
@@ -30,25 +35,36 @@ def guess_country(server: str):
     if ".us" in s: return "US"
     if ".uk" in s: return "GB"
     if ".cn" in s: return "CN"
+    if ".sg" in s: return "SG"
+    if ".kr" in s: return "KR"
+    if ".hk" in s: return "HK"
+    if ".tr" in s: return "TR"
+    if ".pl" in s: return "PL"
+    if ".it" in s: return "IT"
+    if ".es" in s: return "ES"
     return "XX"
 
-FLAGS = {
-    "RU":"🇷🇺","DE":"🇩🇪","NL":"🇳🇱","FR":"🇫🇷","FI":"🇫🇮","JP":"🇯🇵",
-    "US":"🇺🇸","GB":"🇬🇧","CN":"🇨🇳","XX":"🏳️"
-}
-
-def get_flag(cc):
-    return FLAGS.get(cc, "🏳️")
+# =========================
+# AUTO FLAGS (ALL COUNTRIES)
+# =========================
+def get_flag(cc: str) -> str:
+    if not cc or len(cc) != 2:
+        return "🏳️"
+    cc = cc.upper()
+    return chr(0x1F1E6 + ord(cc[0]) - 65) + chr(0x1F1E6 + ord(cc[1]) - 65)
 
 proxies = []
 seen = set()
 
+# =========================
+# PARSE
+# =========================
 for line in links:
     try:
         parsed = urlparse(line)
 
-        uuid, server = parsed.netloc.split("@")
-        host, port = server.split(":")
+        uuid, hostport = parsed.netloc.split("@")
+        host, port = hostport.split(":")
         port = int(port)
 
         qs = parse_qs(parsed.query)
@@ -57,8 +73,12 @@ for line in links:
         sid = qs.get("sid", [""])[0]
         sni = qs.get("sni", [""])[0]
 
-        # ❗ нормальный уникальный ключ
-        key = f"{host}:{port}:{uuid}:{sni}"
+        # cleanup
+        sid = sid.split("#")[0]
+        sni = sni.split("#")[0]
+
+        # better dedup (not just server)
+        key = f"{uuid}@{host}:{port}@{sni}"
         if key in seen:
             continue
         seen.add(key)
@@ -89,6 +109,9 @@ for line in links:
     except Exception:
         continue
 
+# =========================
+# WRITE YAML
+# =========================
 with open(OUT, "w", encoding="utf-8") as f:
     yaml.dump(
         {"proxies": proxies},
