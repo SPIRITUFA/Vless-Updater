@@ -1,0 +1,46 @@
+name: Update Proxies
+
+on:
+  workflow_dispatch:
+
+  schedule:
+    - cron: "*/30 * * * *"
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install deps
+        run: |
+          pip install requests pyyaml
+
+      - name: Generate proxies
+        run: |
+          python scripts/generate.py
+
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          git add output/proxies.yaml
+
+          git diff --cached --quiet && exit 0
+
+          git commit -m "update proxies"
+
+          git pull --rebase origin main || true
+
+          git push
