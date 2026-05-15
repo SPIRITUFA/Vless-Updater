@@ -2,6 +2,8 @@ import os
 import re
 import requests
 import yaml
+import socket
+import time
 from urllib.parse import urlparse, parse_qs
 
 URL = "https://raw.githubusercontent.com/tiagorrg/vless-checker/main/docs/keys.json"
@@ -12,53 +14,54 @@ OUT = f"{OUT_DIR}/proxies.yaml"
 os.makedirs(OUT_DIR, exist_ok=True)
 
 print("[INFO] downloading...")
-
 data = requests.get(URL, timeout=30).text
 
-# =========================
-# extract vless links (strip #comments)
-# =========================
 raw_links = re.findall(r'vless://[^\s"]+', data)
 links = sorted(set(l.split("#")[0] for l in raw_links))
 
-# =========================
-# country guess (simple fallback)
-# =========================
-def guess_country(server: str):
-    s = server.lower()
-    if ".ru" in s: return "RU"
-    if ".de" in s: return "DE"
-    if ".nl" in s: return "NL"
-    if ".fr" in s: return "FR"
-    if ".fi" in s: return "FI"
-    if ".jp" in s: return "JP"
-    if ".us" in s: return "US"
-    if ".uk" in s: return "GB"
-    if ".cn" in s: return "CN"
-    if ".sg" in s: return "SG"
-    if ".kr" in s: return "KR"
-    if ".hk" in s: return "HK"
-    if ".tr" in s: return "TR"
-    if ".pl" in s: return "PL"
-    if ".it" in s: return "IT"
-    if ".es" in s: return "ES"
-    return "XX"
 
 # =========================
-# AUTO FLAGS (ALL COUNTRIES)
+# COUNTRY DETECTION
 # =========================
-def get_flag(cc: str) -> str:
-    if not cc or len(cc) != 2:
-        return "🏳️"
-    cc = cc.upper()
-    return chr(0x1F1E6 + ord(cc[0]) - 65) + chr(0x1F1E6 + ord(cc[1]) - 65)
+def guess_region(host: str):
+    host = host.lower()
+
+    if ".ru" in host:
+        return "RU"
+    if any(x in host for x in [".de", ".fr", ".nl", ".pl", ".it", ".es", ".fi"]):
+        return "EU"
+    if any(x in host for x in [".jp", ".kr", ".cn", ".sg", ".hk", ".in"]):
+        return "ASIA"
+    return "OTHER"
+
+
+def get_flag(region):
+    return {
+        "RU": "🇷🇺",
+        "EU": "🇪🇺",
+        "ASIA": "🌏",
+        "OTHER": "🌐"
+    }.get(region, "🌐")
+
+
+# =========================
+# LATENCY CHECK
+# =========================
+def check_latency(host, port, timeout=2.5):
+    try:
+        start = time.time()
+        s = socket.create_connection((host, port), timeout=timeout)
+        s.close()
+        return round((time.time() - start) * 1000)
+    except:
+        return None
+
 
 proxies = []
 seen = set()
 
-# =========================
-# PARSE
-# =========================
+print("[INFO] testing nodes...")
+
 for line in links:
     try:
         parsed = urlparse(line)
@@ -73,20 +76,21 @@ for line in links:
         sid = qs.get("sid", [""])[0]
         sni = qs.get("sni", [""])[0]
 
-        # cleanup
-        sid = sid.split("#")[0]
-        sni = sni.split("#")[0]
-
-        # better dedup (not just server)
         key = f"{uuid}@{host}:{port}@{sni}"
         if key in seen:
             continue
         seen.add(key)
 
-        cc = guess_country(host)
-        flag = get_flag(cc)
+        latency = check_latency(host, port)
 
-        name = f"{flag} {cc} | {host}:{port}"
+        # ❌ skip dead nodes
+        if latency is None:
+            continue
+
+        region = guess_region(host)
+        flag = get_flag(region)
+
+        name = f"{flag} {region} | {host}:{port} | {latency}ms"
 
         proxies.append({
             "name": name,
@@ -103,22 +107,52 @@ for line in links:
             "reality-opts": {
                 "public-key": pbk or "",
                 "short-id": sid or ""
-            }
+            },
+            "_latency": latency,
+            "_region": region
         })
 
-    except Exception:
+    except:
         continue
 
+
 # =========================
-# WRITE YAML
+# SORT BY PING
 # =========================
+proxies.sort(key=lambda x: x["_latency"])
+
+
+# =========================
+# GROUPS
+# =========================
+grouped = {
+    "RU": [],
+    "EU": [],
+    "ASIA": [],
+    "OTHER": []
+}
+
+for p in proxies:
+    r = p["_region"]
+    p.pop("_latency", None)
+    p.pop("_region", None)
+    grouped[r].append(p)
+
+
+# =========================
+# FINAL OUTPUT
+# =========================
+final = []
+for k in ["RU", "EU", "ASIA", "OTHER"]:
+    final.extend(grouped[k])
+
 with open(OUT, "w", encoding="utf-8") as f:
     yaml.dump(
-        {"proxies": proxies},
+        {"proxies": final},
         f,
         allow_unicode=True,
         sort_keys=False,
         default_flow_style=False
     )
 
-print(f"[OK] generated {len(proxies)} proxies")
+print(f"[OK] live proxies: {len(final)}")
