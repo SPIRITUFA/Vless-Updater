@@ -26,7 +26,7 @@ proxies:
   client-fingerprint: chrome
   reality-opts:
     public-key: 3YCEhvsamGdAd2-A9Iw2zOg4AIvnB-7rE3ZYZz4RQmQ
-    short-id: 4e352b0d4d15e0f9    
+    short-id: 4e352b0d4d15e0f9
 - name: 🇷🇺 RU | most-cloud-gaming.harknmav.fun:443
   type: vless
   server: most-cloud-gaming.harknmav.fun
@@ -40,7 +40,7 @@ proxies:
   client-fingerprint: chrome
   reality-opts:
     public-key: ZJcIRk3tkkvpe-n4Zzz7938AQG4FmBSzN9gwXcJ8mg4
-    short-id: 4a752b0d4d15e0f7    
+    short-id: 4a752b0d4d15e0f7
 - name: 🇷🇺 RU | most-cy2.harknmav.fun:443
   type: vless
   server: most-cy2.harknmav.fun
@@ -54,7 +54,7 @@ proxies:
   client-fingerprint: chrome
   reality-opts:
     public-key: BkQP5K_b-8lshJciihVQa4SbEWu-g51DzlVGndzwc2w
-    short-id: 4e752b0d4d15e0f9   
+    short-id: 4e752b0d4d15e0f9
 - name: 🇷🇺 RU | most-ee.harknmav.fun:443
   type: vless
   server: most-ee.harknmav.fun
@@ -68,7 +68,7 @@ proxies:
   client-fingerprint: chrome
   reality-opts:
     public-key: kE4EZIN4WcOejRZGeNrzCuCZk22ebmMmq9YzOo1yC0k
-    short-id: 4e152b0d4d15e0f9    
+    short-id: 4e152b0d4d15e0f9
 - name: 🇷🇺 RU | most-fr.harknmav.fun:443
   type: vless
   server: most-fr.harknmav.fun
@@ -419,4 +419,171 @@ proxies:
   reality-opts:
     public-key: CeocQQsEj87Z5zvHIko55Bf7oWP9VDnd5qefDaNCIR8
     short-id: 22bf188b62fa255f
-
+- name: 🇷🇺 RU | 5.188.140.166:443
+  type: vless
+  server: 5.188.140.166
+  port: 443
+  uuid: b6ce8a51-19b9-4979-91ba-b4298c26d5fc
+  network: tcp
+  tls: true
+  udp: true
+  servername: max.ru
+  flow: xtls-rprx-vision
+  client-fingerprint: chrome
+  reality-opts:
+    public-key: mAu8QDi3pbmMCFg9kKC-ZBIHdtnXeCuZt3VnAw6vlH4
+    short-id: ad7dab462a323acb
+- name: 🇷🇺 RU | batton4.ikisky.com:443
+  type: vless
+  server: batton4.ikisky.com
+  port: 443
+  uuid: b9d56e59-02ee-4af0-9963-b3650f8a1387
+  network: tcp
+  tls: true
+  udp: true
+  servername: batton4.ikisky.com
+  flow: xtls-rprx-vision
+  client-fingerprint: chrome
+  reality-opts:
+    public-key: hOUwTtuq2-jG7uKSgnrKIWxj3HdPYvvL7Kj3nrFTKA4
+    short-id: 49c667cd18477438
+- name: 🇷🇺 RU | batton5.ikisky.com:443
+  type: vless
+  server: batton5.ikisky.com
+  port: 443
+  uuid: b9d56e59-02ee-4af0-9963-b3650f8a1387
+  network: tcp
+  tls: true
+  udp: true
+  servername: batton5.ikisky.com
+  flow: xtls-rprx-vision
+  client-fingerprint: chrome
+  reality-opts:
+    public-key: hOUwTtuq2-jG7uKSgnrKIWxj3HdPYvvL7Kj3nrFTKA4
+    short-id: 49c667cd18477438
+- name: 🇷🇺 RU | germ6.api3-max.ru:443
+  type: vless
+  server: germ6.api3-max.ru
+  port: 443
+  uuid: b9d56e59-02ee-4af0-9963-b3650f8a1387
+  network: tcp
+  tls: true
+  udp: true
+  servername: germ6.api3-max.ru
+  flow: xtls-rprx-vision
+  client-fingerprint: chrome
+  reality-opts:
+    public-key: hOUwTtuq2-jG7uKSgnrKIWxj3HdPYvvL7Kj3nrFTKA4
+    short-id: 49c667cd18477438
+- name: 🇷🇺 RU | germ7.api3-max.ru:443
+  type: vless
+  server: germ7.api3-max.ru
+  port: 443
+  uuid: b9d56e59-02ee-4af0-9963-b3650f8a1387
+  network: tcp
+  tls: true
+  udp: true
+  servername: germ7.api3-max.ru
+  flow: xtls-rprx-vision
+  client-fingerprint: chrome
+  reality-opts:
+    public-key: hOUwTtuq2-jG7uKSgnrKIWxj3HdPYvvL7Kj3nrFTKA4
+    short-id: 49c667cd18477438
+- name: 🇷🇺 RU | germ8.api3-max.ru:443
+  type: vless
+  server: germ8.api3-max.ru
+  port: 443
+  uuid: b9d56e59-02ee-4af0-9963-b3650f8a1387
+  network: tcp
+  tls: true
+  udp: true
+  servername: germ8.api3-max.ru
+  flow: xtls-rprx-vision
+  client-fingerprint: chrome
+  reality-opts:
+    public-key: hOUwTtuq2-jG7uKSgnrKIWxj3HdPYvvL7Kj3nrFTKA4
+    short-id: 49c667cd18477438
+- name: 🇷🇺 RU | germ9.api3-max.ru:443
+  type: vless
+  server: germ9.api3-max.ru
+  port: 443
+  uuid: b9d56e59-02ee-4af0-9963-b3650f8a1387
+  network: tcp
+  tls: true
+  udp: true
+  servername: germ9.api3-max.ru
+  flow: xtls-rprx-vision
+  client-fingerprint: chrome
+  reality-opts:
+    public-key: hOUwTtuq2-jG7uKSgnrKIWxj3HdPYvvL7Kj3nrFTKA4
+    short-id: 49c667cd18477438
+- name: 🇷🇺 RU | mimik2.api3-max.ru:443
+  type: vless
+  server: mimik2.api3-max.ru
+  port: 443
+  uuid: b9d56e59-02ee-4af0-9963-b3650f8a1387
+  network: tcp
+  tls: true
+  udp: true
+  servername: mimik2.api3-max.ru
+  flow: xtls-rprx-vision
+  client-fingerprint: chrome
+  reality-opts:
+    public-key: hOUwTtuq2-jG7uKSgnrKIWxj3HdPYvvL7Kj3nrFTKA4
+    short-id: 49c667cd18477438
+- name: 🇷🇺 RU | neth3.api3-max.ru:443
+  type: vless
+  server: neth3.api3-max.ru
+  port: 443
+  uuid: b9d56e59-02ee-4af0-9963-b3650f8a1387
+  network: tcp
+  tls: true
+  udp: true
+  servername: neth3.api3-max.ru
+  flow: xtls-rprx-vision
+  client-fingerprint: chrome
+  reality-opts:
+    public-key: hOUwTtuq2-jG7uKSgnrKIWxj3HdPYvvL7Kj3nrFTKA4
+    short-id: 49c667cd18477438
+- name: 🇷🇺 RU | pivo3.ikisky.com:443
+  type: vless
+  server: pivo3.ikisky.com
+  port: 443
+  uuid: b9d56e59-02ee-4af0-9963-b3650f8a1387
+  network: tcp
+  tls: true
+  udp: true
+  servername: pivo3.ikisky.com
+  flow: xtls-rprx-vision
+  client-fingerprint: chrome
+  reality-opts:
+    public-key: hOUwTtuq2-jG7uKSgnrKIWxj3HdPYvvL7Kj3nrFTKA4
+    short-id: 49c667cd18477438
+- name: 🇷🇺 RU | pivo4.ikisky.com:443
+  type: vless
+  server: pivo4.ikisky.com
+  port: 443
+  uuid: b9d56e59-02ee-4af0-9963-b3650f8a1387
+  network: tcp
+  tls: true
+  udp: true
+  servername: pivo4.ikisky.com
+  flow: xtls-rprx-vision
+  client-fingerprint: chrome
+  reality-opts:
+    public-key: hOUwTtuq2-jG7uKSgnrKIWxj3HdPYvvL7Kj3nrFTKA4
+    short-id: 49c667cd18477438
+- name: 🇷🇺 RU | pivo5.ikisky.com:443
+  type: vless
+  server: pivo5.ikisky.com
+  port: 443
+  uuid: b9d56e59-02ee-4af0-9963-b3650f8a1387
+  network: tcp
+  tls: true
+  udp: true
+  servername: pivo5.ikisky.com
+  flow: xtls-rprx-vision
+  client-fingerprint: chrome
+  reality-opts:
+    public-key: hOUwTtuq2-jG7uKSgnrKIWxj3HdPYvvL7Kj3nrFTKA4
+    short-id: 49c667cd18477438
