@@ -1,10 +1,14 @@
 import requests
 import yaml
 import re
+import os
 
 URL = "https://raw.githubusercontent.com/tiagorrg/vless-checker/main/docs/keys.json"
 
 OUT = "output/proxies.yaml"
+
+# СОЗДАЕТ output/
+os.makedirs("output", exist_ok=True)
 
 FLAGS = {
     "RU": "🇷🇺",
