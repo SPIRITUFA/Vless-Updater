@@ -40,8 +40,7 @@ proxies:
   client-fingerprint: chrome
   reality-opts:
     public-key: ZJcIRk3tkkvpe-n4Zzz7938AQG4FmBSzN9gwXcJ8mg4
-    short-id: 4a752b0d4d15e0f7
-    
+    short-id: 4a752b0d4d15e0f7    
 - name: 🇷🇺 RU | most-cy2.harknmav.fun:443
   type: vless
   server: most-cy2.harknmav.fun
