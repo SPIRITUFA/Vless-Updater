@@ -15,8 +15,9 @@ os.makedirs("output", exist_ok=True)
 # =========================
 # FLAGS
 # =========================
-FLAGS = {
-      # Europe
+get_flag() {
+  case "$1" in
+    # Europe
     AL) echo "🇦🇱" ;; AD) echo "🇦🇩" ;; AM) echo "🇦🇲" ;;
     AT) echo "🇦🇹" ;; AZ) echo "🇦🇿" ;; BY) echo "🇧🇾" ;;
     BE) echo "🇧🇪" ;; BA) echo "🇧🇦" ;; BG) echo "🇧🇬" ;;
@@ -74,6 +75,10 @@ FLAGS = {
 
     # Oceania
     AU) echo "🇦🇺" ;; NZ) echo "🇳🇿" ;; FJ) echo "🇫🇯" ;;
+
+    # fallback
+    *) echo "🏳️" ;;
+  esac
 }
 
 # =========================
