@@ -347,7 +347,21 @@ proxies:
   flow: xtls-rprx-vision
   client-fingerprint: chrome
   reality-opts:
-    public-key: 0t6b8m_PBAG3rF2HPOEL4yiyb-2JglciiANPKvyb2Ho#%F0%9F%87%B7%F0%9F%87%BA%20Russia%20%5B%2ACIDR%5D%20VK
+    public-key: 0t6b8m_PBAG3rF2HPOEL4yiyb-2JglciiANPKvyb2Ho
+    short-id: ''
+- name: 🏳️ XX | 146.185.243.104:443
+  type: vless
+  server: 146.185.243.104
+  port: 443
+  uuid: 280cebf8-116e-4f73-ac4e-ef108343a6cd
+  network: tcp
+  tls: true
+  udp: true
+  servername: eh.vk.com
+  flow: xtls-rprx-vision
+  client-fingerprint: chrome
+  reality-opts:
+    public-key: 0t6b8m_PBAG3rF2HPOEL4yiyb-2JglciiANPKvyb2Ho
     short-id: ''
 - name: 🏳️ XX | cloud1.ummaadmin.cloud:443
   type: vless
@@ -534,6 +548,20 @@ proxies:
 - name: 🇷🇺 RU | kz.sbrf-cdn342.ru:443
   type: vless
   server: kz.sbrf-cdn342.ru
+  port: 443
+  uuid: 85b5cb2e-2617-4930-b6a4-4aeaf3b7b9aa
+  network: tcp
+  tls: true
+  udp: true
+  servername: sub.sbrf-cdn342.ru
+  flow: xtls-rprx-vision
+  client-fingerprint: chrome
+  reality-opts:
+    public-key: ''
+    short-id: ''
+- name: 🇷🇺 RU | uae.sbrf-cdn342.ru:443
+  type: vless
+  server: uae.sbrf-cdn342.ru
   port: 443
   uuid: 85b5cb2e-2617-4930-b6a4-4aeaf3b7b9aa
   network: tcp
@@ -903,7 +931,7 @@ proxies:
   network: tcp
   tls: true
   udp: true
-  servername: srv1.khatibirepair.ir
+  servername: ''
   flow: xtls-rprx-vision
   client-fingerprint: chrome
   reality-opts:
