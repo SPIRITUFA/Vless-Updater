@@ -1,41 +1,30 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
 import os
-import re
-import time
 import json
-import socket
-import yaml
 import requests
-from urllib.parse import urlparse, parse_qs
-from subprocess import run, PIPE
-
-URL = "https://raw.githubusercontent.com/tiagorrg/vless-checker/main/docs/keys.json"
-
-OUT_DIR = os.path.join(os.path.dirname(__file__), "..", "output")
-OUT = os.path.join(OUT_DIR, "proxies.yaml")
-LAT_FILE = os.path.join("/tmp", "latency.txt")
-CACHE_FILE = os.path.join("/tmp", "geo_cache.txt")
-
-os.makedirs(OUT_DIR, exist_ok=True)
+import subprocess
+import time
+import yaml
+from pathlib import Path
 
 # =========================
-# FLAGS
+# Параметры
+# =========================
+URL = "https://raw.githubusercontent.com/tiagorrg/vless-checker/main/docs/keys.json"
+OUT = "/opt/etc/mihomo/proxy-providers/proxies.yaml"
+TMP = "/tmp/proxies.yaml"
+CACHE_FILE = "/tmp/geo_cache.txt"
+
+# Создаем директории
+Path(os.path.dirname(OUT)).mkdir(parents=True, exist_ok=True)
+Path(CACHE_FILE).touch(exist_ok=True)
+
+# =========================
+# Флаги по коду страны
 # =========================
 FLAGS = {
-    # Europe
-    "RU":"🇷🇺","DE":"🇩🇪","FR":"🇫🇷","NL":"🇳🇱","PL":"🇵🇱","IT":"🇮🇹","ES":"🇪🇸","FI":"🇫🇮",
-    # Asia
-    "CN":"🇨🇳","JP":"🇯🇵","KR":"🇰🇷","SG":"🇸🇬","HK":"🇭🇰","IN":"🇮🇳",
-    # North America
-    "US":"🇺🇸","CA":"🇨🇦","MX":"🇲🇽",
-    # South America
-    "BR":"🇧🇷","AR":"🇦🇷","CL":"🇨🇱","CO":"🇨🇴","PE":"🇵🇪",
-    # Africa
-    "ZA":"🇿🇦","NG":"🇳🇬","EG":"🇪🇬",
-    # Oceania
-    "AU":"🇦🇺","NZ":"🇳🇿",
+    "RU":"🇷🇺","DE":"🇩🇪","FR":"🇫🇷","PL":"🇵🇱","US":"🇺🇸","GB":"🇬🇧","FI":"🇫🇮","JP":"🇯🇵",
+    "XX":"🌐"  # fallback
 }
 
 def get_flag(cc):
@@ -44,94 +33,84 @@ def get_flag(cc):
 # =========================
 # GEO CACHE
 # =========================
+geo_cache = {}
+with open(CACHE_FILE, "r") as f:
+    for line in f:
+        if "|" in line:
+            server, cc = line.strip().split("|")
+            geo_cache[server] = cc
+
 def get_country(server):
-    if not os.path.exists(CACHE_FILE):
-        open(CACHE_FILE, "w").close()
-    with open(CACHE_FILE, "r") as f:
-        for line in f:
-            if line.startswith(f"{server}|"):
-                return line.strip().split("|")[1]
+    if server in geo_cache:
+        return geo_cache[server]
     try:
-        geo = requests.get(f"http://ip-api.com/json/{server}", timeout=2).json()
-        cc = geo.get("countryCode", "XX")
+        resp = requests.get(f"http://ip-api.com/json/{server}", timeout=5)
+        data = resp.json()
+        cc = data.get("countryCode", "XX")
     except:
         cc = "XX"
+    geo_cache[server] = cc
+    # save to cache
     with open(CACHE_FILE, "a") as f:
         f.write(f"{server}|{cc}\n")
     return cc
 
 # =========================
-# LATENCY
+# TLS latency
 # =========================
 def get_latency(host, port, sni):
+    start = time.time()
     try:
-        start = time.time()
-        # OpenSSL check
-        cmd = ["timeout", "2", "openssl", "s_client", "-connect", f"{host}:{port}", "-servername", sni]
-        run(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
-        return int((time.time() - start)*1000)
+        subprocess.run([
+            "openssl", "s_client", "-connect", f"{host}:{port}", "-servername", sni
+        ], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=2)
     except:
-        return 2000  # fallback high latency
+        return 9999
+    end = time.time()
+    return int((end - start) * 1000)
 
 # =========================
-# DOWNLOAD LINKS
+# Скачиваем JSON
 # =========================
-print("[INFO] downloading JSON...")
-resp = requests.get(URL, timeout=10)
-data = resp.text
-links = sorted(set(re.findall(r'vless://[^\s"]+', data)))
+print("[INFO] Downloading JSON...")
+r = requests.get(URL, timeout=10)
+r.raise_for_status()
+json_data = r.json()
 
-print("[INFO] parsing nodes...")
+nodes = []
 
-proxies = []
-latencies = []
-
-for line in links:
+# =========================
+# Парсим ноды
+# =========================
+for node_str in set(json_data):
+    if not node_str.startswith("vless://") or "@" not in node_str:
+        continue
     try:
-        parsed = urlparse(line)
-        if "@" not in parsed.netloc:
-            continue
-        uuid, hostport = parsed.netloc.split("@")
-        host, port = hostport.split(":")
+        # Разбор строки
+        parts = node_str.split("@")
+        uuid = parts[0].replace("vless://","")
+        server_port = parts[1].split("?")[0]
+        server, port = server_port.split(":")
         port = int(port)
-        qs = parse_qs(parsed.query)
-        pbk = qs.get("pbk", [""])[0]
-        sid = qs.get("sid", [""])[0].split("#")[0]
-        sni = qs.get("sni", [""])[0].split("#")[0]
+        query = parts[1].split("?")[1] if "?" in parts[1] else ""
+        pbk = sid = sni = ""
+        for q in query.split("&"):
+            if q.startswith("pbk="): pbk = q[4:]
+            if q.startswith("sid="): sid = q[4:]
+            if q.startswith("sni="): sni = q[4:]
+        if not sni: sni = server
+        if not pbk or not sid: continue
 
-        if not all([uuid, host, port, pbk, sid, sni]):
+        print(f"[TEST] {server}:{port}")
+        latency = get_latency(server, port, sni)
+        if latency > 1200:
             continue
 
-        ms = get_latency(host, port, sni)
-        if ms > 1200:
-            continue
-
-        cc = get_country(host)
+        cc = get_country(server)
         flag = get_flag(cc)
 
-        latencies.append((ms, cc, host, port, uuid, pbk, sid, sni, flag))
-    except Exception as e:
-        continue
-
-# =========================
-# SORT BY LATENCY + UNIQUE
-# =========================
-seen = set()
-latencies.sort()
-latencies_unique = []
-for item in latencies:
-    if item[2] not in seen:
-        seen.add(item[2])
-        latencies_unique.append(item)
-
-# =========================
-# WRITE YAML
-# =========================
-with open(OUT, "w", encoding="utf-8") as f:
-    proxies_yaml = []
-    for ms, cc, server, port, uuid, pbk, sid, sni, flag in latencies_unique:
-        proxies_yaml.append({
-            "name": f"{flag} {cc} | {server}:{port} ({ms} ms)",
+        nodes.append({
+            "name": f"{flag} {cc} | {server}:{port} ({latency} ms)",
             "type": "vless",
             "server": server,
             "port": port,
@@ -145,8 +124,39 @@ with open(OUT, "w", encoding="utf-8") as f:
             "reality-opts": {
                 "public-key": pbk,
                 "short-id": sid
-            }
+            },
+            "latency": latency
         })
-    yaml.dump({"proxies": proxies_yaml}, f, allow_unicode=True, sort_keys=False, default_flow_style=False)
+    except Exception as e:
+        continue
 
-print(f"[OK] generated {len(proxies_yaml)} proxies")
+# =========================
+# Сортируем по latency
+# =========================
+nodes.sort(key=lambda x: x["latency"])
+
+# =========================
+# Генерация YAML
+# =========================
+with open(TMP, "w") as f:
+    yaml.dump({"proxies": nodes}, f, sort_keys=False, allow_unicode=True)
+
+# =========================
+# Применяем если есть изменения
+# =========================
+if not Path(OUT).exists() or open(TMP).read() != open(OUT).read():
+    if Path(OUT).exists():
+        Path(OUT + ".bak").write_text(open(OUT).read())
+    Path(TMP).replace(OUT)
+    print("[INFO] YAML UPDATED")
+    # reload mihomo
+    try:
+        requests.post("http://127.0.0.1:9090/proxies", timeout=2)
+        print("[INFO] Mihomo reloaded")
+    except:
+        pass
+else:
+    Path(TMP).unlink()
+    print("[INFO] no changes")
+
+print(f"[INFO] total nodes: {len(nodes)}")
