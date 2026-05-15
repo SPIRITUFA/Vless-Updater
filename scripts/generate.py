@@ -1,24 +1,23 @@
-import os
 import re
-import requests
+import os
 import yaml
+import requests
+import time
+import socket
+from urllib.parse import parse_qs
 
 URL = "https://raw.githubusercontent.com/tiagorrg/vless-checker/main/docs/keys.json"
 
-OUT_DIR = "output"
-OUT = f"{OUT_DIR}/proxies.yaml"
+OUT = "output/proxies.yaml"
+CACHE = "/tmp/geo_cache.txt"
 
-os.makedirs(OUT_DIR, exist_ok=True)
-
-print("[INFO] downloading...")
-
-data = requests.get(URL, timeout=30).text
-links = sorted(set(re.findall(r'vless://[^"\s]+', data)))
+os.makedirs("output", exist_ok=True)
 
 # =========================
-# 🌍 FULL FLAGS (250+ ISO)
+# FULL FLAGS MAP (ALL YOUR LIST)
 # =========================
 FLAGS = {
+    # Europe
     "AL":"🇦🇱","AD":"🇦🇩","AM":"🇦🇲","AT":"🇦🇹","AZ":"🇦🇿","BY":"🇧🇾",
     "BE":"🇧🇪","BA":"🇧🇦","BG":"🇧🇬","HR":"🇭🇷","CY":"🇨🇾","CZ":"🇨🇿",
     "DK":"🇩🇰","EE":"🇪🇪","FI":"🇫🇮","FR":"🇫🇷","GE":"🇬🇪","DE":"🇩🇪",
@@ -26,9 +25,9 @@ FLAGS = {
     "LI":"🇱🇮","LT":"🇱🇹","LU":"🇱🇺","MT":"🇲🇹","MD":"🇲🇩","MC":"🇲🇨",
     "ME":"🇲🇪","NL":"🇳🇱","MK":"🇲🇰","NO":"🇳🇴","PL":"🇵🇱","PT":"🇵🇹",
     "RO":"🇷🇴","RU":"🇷🇺","SM":"🇸🇲","RS":"🇷🇸","SK":"🇸🇰","SI":"🇸🇮",
-    "ES":"🇪🇸","SE":"🇸🇪","CH":"🇨🇭","TR":"🇹🇷","UA":"🇺🇦","GB":"🇬🇧",
-    "VA":"🇻🇦",
+    "ES":"🇪🇸","SE":"🇸🇪","CH":"🇨🇭","TR":"🇹🇷","UA":"🇺🇦","GB":"🇬🇧","VA":"🇻🇦",
 
+    # Asia
     "AF":"🇦🇫","BH":"🇧🇭","BD":"🇧🇩","BT":"🇧🇹","BN":"🇧🇳","KH":"🇰🇭",
     "CN":"🇨🇳","HK":"🇭🇰","IN":"🇮🇳","ID":"🇮🇩","IR":"🇮🇷","IQ":"🇮🇶",
     "IL":"🇮🇱","JP":"🇯🇵","JO":"🇯🇴","KZ":"🇰🇿","KW":"🇰🇼","KG":"🇰🇬",
@@ -37,99 +36,146 @@ FLAGS = {
     "QA":"🇶🇦","SA":"🇸🇦","SG":"🇸🇬","LK":"🇱🇰","SY":"🇸🇾","TW":"🇹🇼",
     "TJ":"🇹🇯","TH":"🇹🇭","TM":"🇹🇲","AE":"🇦🇪","UZ":"🇺🇿","VN":"🇻🇳","YE":"🇾🇪",
 
+    # North America
     "CA":"🇨🇦","CR":"🇨🇷","CU":"🇨🇺","DO":"🇩🇴","SV":"🇸🇻","GT":"🇬🇹",
     "HT":"🇭🇹","HN":"🇭🇳","JM":"🇯🇲","MX":"🇲🇽","NI":"🇳🇮","PA":"🇵🇦",
     "US":"🇺🇸",
 
+    # South America
     "AR":"🇦🇷","BO":"🇧🇴","BR":"🇧🇷","CL":"🇨🇱","CO":"🇨🇴","EC":"🇪🇨",
     "GY":"🇬🇾","PY":"🇵🇾","PE":"🇵🇪","SR":"🇸🇷","UY":"🇺🇾","VE":"🇻🇪",
 
+    # Africa
     "DZ":"🇩🇿","AO":"🇦🇴","CM":"🇨🇲","EG":"🇪🇬","ET":"🇪🇹","GH":"🇬🇭",
     "KE":"🇰🇪","LY":"🇱🇾","MA":"🇲🇦","NG":"🇳🇬","ZA":"🇿🇦","TN":"🇹🇳",
     "UG":"🇺🇬","ZW":"🇿🇼",
 
+    # Oceania
     "AU":"🇦🇺","NZ":"🇳🇿","FJ":"🇫🇯"
 }
 
 def get_flag(cc):
-    return FLAGS.get(cc, "🏳️")
+    return FLAGS.get(cc, "🏳️ XX")
 
 # =========================
-# GEO GUESS
+# GEO CACHE
 # =========================
-def guess_country(server: str):
-    s = server.lower()
-    if ".ru" in s: return "RU"
-    if ".de" in s: return "DE"
-    if ".nl" in s: return "NL"
-    if ".fr" in s: return "FR"
-    if ".fi" in s: return "FI"
-    if ".jp" in s: return "JP"
-    if ".us" in s: return "US"
-    if ".uk" in s: return "GB"
-    if ".cn" in s: return "CN"
-    return "XX"
+geo_cache = {}
+if os.path.exists(CACHE):
+    with open(CACHE, "r") as f:
+        for line in f:
+            if "|" in line:
+                s, c = line.strip().split("|")
+                geo_cache[s] = c
 
-proxies = []
-seen = set()
+def get_country(server):
+    if server in geo_cache:
+        return geo_cache[server]
+
+    try:
+        r = requests.get(f"http://ip-api.com/json/{server}", timeout=3).json()
+        cc = r.get("countryCode", "XX")
+    except:
+        cc = "XX"
+
+    geo_cache[server] = cc
+
+    with open(CACHE, "a") as f:
+        f.write(f"{server}|{cc}\n")
+
+    return cc
+
+# =========================
+# LATENCY
+# =========================
+def latency(host, port):
+    try:
+        start = time.time()
+        s = socket.create_connection((host, port), timeout=2)
+        s.close()
+        return int((time.time() - start) * 1000)
+    except:
+        return 9999
 
 # =========================
 # PARSE
 # =========================
-for line in links:
+def parse_vless(url):
     try:
-        uuid = re.search(r'vless://([^@]+)@', line).group(1)
-        server = re.search(r'@([^:]+):', line).group(1)
-        port = int(re.search(r':(\d+)', line).group(1))
+        url = url.replace("vless://", "")
+        user, rest = url.split("@")
+        host_port, params = rest.split("?", 1)
 
-        pbk = re.search(r'pbk=([^&]+)', line).group(1)
-        sid = re.search(r'sid=([^&#]+)', line).group(1)
-        sni = re.search(r'sni=([^&#]+)', line).group(1)
+        host, port = host_port.split(":")
+        q = parse_qs(params)
 
+        return {
+            "uuid": user,
+            "server": host,
+            "port": int(port),
+            "pbk": q.get("pbk", [""])[0],
+            "sid": q.get("sid", [""])[0],
+            "sni": q.get("sni", [""])[0],
+        }
     except:
+        return None
+
+# =========================
+# LOAD
+# =========================
+print("[INFO] downloading...")
+data = requests.get(URL, timeout=30).text
+links = list(set(re.findall(r'vless://[^"]+', data)))
+
+proxies = []
+
+# =========================
+# BUILD
+# =========================
+for link in links:
+    item = parse_vless(link)
+    if not item:
         continue
 
-    server = server.strip()
-    sid = sid.split("#")[0]
-    sni = sni.split("#")[0]
-
-    if server in seen:
+    if not item["server"] or not item["port"]:
         continue
-    seen.add(server)
 
-    cc = guess_country(server)
+    ms = latency(item["server"], item["port"])
+    if ms > 1200:
+        continue
+
+    cc = get_country(item["server"])
     flag = get_flag(cc)
 
-    name = f"{flag} {cc} | {server}:{port}"
+    name = f"{flag} {cc} | {item['server']}:{item['port']} ({ms}ms)"
 
     proxies.append({
         "name": name,
         "type": "vless",
-        "server": server,
-        "port": port,
-        "uuid": uuid,
+        "server": item["server"],
+        "port": item["port"],
+        "uuid": item["uuid"],
         "network": "tcp",
         "tls": True,
         "udp": True,
-        "servername": sni,
+        "servername": item["sni"],
         "flow": "xtls-rprx-vision",
         "client-fingerprint": "chrome",
         "reality-opts": {
-            "public-key": pbk,
-            "short-id": sid
+            "public-key": item["pbk"],
+            "short-id": item["sid"]
         }
     })
+
+# =========================
+# SORT BEST FIRST
+# =========================
+proxies.sort(key=lambda x: int(re.search(r'\((\d+)ms\)', x["name"]).group(1)))
 
 # =========================
 # WRITE YAML
 # =========================
 with open(OUT, "w", encoding="utf-8") as f:
-    yaml.dump(
-        {"proxies": proxies},
-        f,
-        allow_unicode=True,
-        sort_keys=False,
-        default_flow_style=False
-    )
+    yaml.dump({"proxies": proxies}, f, allow_unicode=True, sort_keys=False)
 
 print(f"[OK] generated {len(proxies)} proxies")
